@@ -24,17 +24,15 @@ def list2tensor(arr):
 class Word2Batch:
     def __init__(self, model, word, lives=6):
         self.origin_word = word
-        self.guessed_letter = set()  # each element should be a idx
+        self.guessed_letter = set()
         self.word_idx = [ord(i)-97 for i in word]
         self.remain_letters = set(self.word_idx)
         self.model = model
         self.lives_left = lives
         self.guessed_letter_each = []
-
-        # the following is the dataset for variable to output
-        self.obscured_word_seen = []  # n * 27, where n is the number of guesses
-        self.prev_guessed = []  # n*26, where n is the number of guesses and each element is the normalized word idx
-        self.correct_response = []  # this is the label, meaning self.prev_guess should be one of self.correct_response
+        self.obscured_word_seen = []  
+        self.prev_guessed = [] 
+        self.correct_response = [] 
 
     def encode_obscure_word(self):
         word = [i if i in self.guessed_letter else 26 for i in self.word_idx]
@@ -62,7 +60,6 @@ class Word2Batch:
         correct_response_seen = []
 
         while self.lives_left > 0 and len(self.remain_letters) > 0:
-            # store obscured word and previous guesses -- act as X for the label
             obscured_word = self.encode_obscure_word()
             prev_guess = self.encode_prev_guess()
 
@@ -75,25 +72,20 @@ class Word2Batch:
                 prev_guess = prev_guess.cuda()
 
             self.model.eval()
-            guess = self.model(obscured_word, prev_guess)  # output of guess should be a 1 by 26 vector
+            guess = self.model(obscured_word, prev_guess) 
             guess = torch.argmax(guess, dim=2).item()
             self.guessed_letter.add(guess)
             self.guessed_letter_each.append(chr(guess + 97))
-
-            # store correct response -- act as label for the model
             correct_response = self.encode_correct_response()
             correct_response_seen.append(correct_response)
-
-            # update letter remained and lives left
-            if guess in self.remain_letters:  # only remove guess when the guess is correct
+            if guess in self.remain_letters: 
                 self.remain_letters.remove(guess)
 
-            if correct_response_seen[-1][guess] < 0.0000001:  # which means we made a wrong guess
+            if correct_response_seen[-1][guess] < 0.0000001:
                 self.lives_left -= 1
         obscured_words_seen = list2tensor(obscured_words_seen)
         prev_guess_seen = list2tensor(prev_guess_seen)
         correct_response_seen = list2tensor(correct_response_seen)
-        # correct_response_seen = correct_response_seen.long()
         return obscured_words_seen, prev_guess_seen, correct_response_seen
 
 class StatefulLSTM(nn.Module):
@@ -146,16 +138,10 @@ class LockedDropout(nn.Module):
 class RNN_model(nn.Module):
     def __init__(self, hidden_units=16, target_dim=26):
         super(RNN_model, self).__init__()
-
-        # self.embedding = nn.Embedding(vocab_size,no_of_hidden_units)#,padding_idx=0)
-
         self.lstm1 = StatefulLSTM(27, hidden_units)
         self.bn_lstm1 = nn.BatchNorm1d(hidden_units)
         self.dropout1 = LockedDropout()
         self.fc = nn.Linear(hidden_units + 26, target_dim)
-
-
-        # self.loss = nn.BCEWithLogitsLoss()
 
     def reset_state(self):
         self.lstm1.reset_state()
@@ -178,7 +164,7 @@ class RNN_model(nn.Module):
             h = self.dropout1(h, dropout=0.1, train=train)
 
             pool = nn.MaxPool1d(batch_size)
-            h = h.permute(1, 0)  # (batch_size,features,time_steps)
+            h = h.permute(1, 0) 
             h = h.unsqueeze(0)
             out = pool(h)
             out = out.squeeze(2)
@@ -198,7 +184,7 @@ def gen_n_gram(word, n):
 
 def init_n_gram(n):
     n_gram = {}
-    full_dictionary = ["apple", "hhh", "genereate", "google", "abc", "googla"]
+    full_dictionary = ["mosaic","cassandra","devbits"]
     for word in full_dictionary:
         single_word_gram = gen_n_gram(word, n)
         print(word, single_word_gram)
