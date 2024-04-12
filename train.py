@@ -19,7 +19,7 @@ root_path = os.getcwd()
 file_name = "training.txt"
 file_path = os.path.join(root_path, file_name)
 words = get_all_words(file_path)
-num_words = 466390
+num_words = 50000
 model = RNN_model(target_dim=26, hidden_units=16)
 
 n_epoch = 2

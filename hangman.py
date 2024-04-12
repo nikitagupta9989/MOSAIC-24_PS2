@@ -39,7 +39,7 @@ def hangman(filename, guess_func):
     """
     actual logic of the game.
     """
-    word = choose_word(filename)
+    word = "ashutosh"
     guessed_letters = []
     attempts_left = 6
 
